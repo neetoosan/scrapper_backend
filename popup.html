@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edge Contact Scraper</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <p class="eyebrow">Current page scraper</p>
+        <h1>Edge Contact Scraper</h1>
+        <p class="subtitle">Extract contacts from Google Maps, WhatsApp, Facebook, Jiji, and more.</p>
+      </header>
+
+      <section class="controls">
+        <button id="scrapeButton" type="button">Scrape This Page</button>
+        <button id="scrapeWebsiteButton" type="button">Scrape Website</button>
+        <button id="scrapeWaButton" type="button" class="whatsapp-btn">Scrape WhatsApp</button>
+        <button id="copyButton" type="button" class="secondary" disabled>Copy JSON</button>
+        <button id="exportButton" type="button" class="secondary" disabled>Export XLSX</button>
+      </section>
+
+      <section id="waConfigPanel" class="config-panel hidden">
+        <h3>WhatsApp Scraping Options</h3>
+        <p class="help-text">Configure how you want to scrape WhatsApp Web contacts.</p>
+        
+        <div class="form-group">
+          <label for="waTarget">Target:</label>
+          <select id="waTarget">
+            <option value="group">Group Members (Open Group Info)</option>
+            <option value="chatlist">Chat List (Left Sidebar)</option>
+          </select>
+        </div>
+
+        <div class="form-group checkbox">
+          <input type="checkbox" id="waAutoScroll" checked>
+          <label for="waAutoScroll" title="Automatically scrolls to load all hidden contacts in the list.">Enable Auto-scroll</label>
+        </div>
+
+        <div class="panel-actions">
+          <button id="waStartScrapeBtn" type="button" class="whatsapp-btn">Start Scraping</button>
+          <button id="waCancelBtn" type="button" class="secondary">Cancel</button>
+        </div>
+      </section>
+
+      <section class="status" id="status">Ready.</section>
+
+      <section class="results">
+        <div class="result-block">
+          <h2>Summary</h2>
+          <dl id="summary" class="summary">
+            <div><dt>Names</dt><dd>0</dd></div>
+            <div><dt>Companies</dt><dd>0</dd></div>
+            <div><dt>Phones</dt><dd>0</dd></div>
+            <div><dt>WhatsApp</dt><dd>0</dd></div>
+            <div><dt>Emails</dt><dd>0</dd></div>
+            <div><dt>Socials</dt><dd>0</dd></div>
+            <div><dt>Websites</dt><dd>0</dd></div>
+            <div><dt>Addresses</dt><dd>0</dd></div>
+          </dl>
+        </div>
+
+        <div class="result-block">
+          <h2>Extracted Data</h2>
+          <textarea id="output" spellcheck="false" readonly></textarea>
+        </div>
+      </section>
+    </main>
+    <script src="scraper.js"></script>
+    <script src="excel-builder.js"></script>
+    <script src="popup.js"></script>
+  </body>
+  </html>

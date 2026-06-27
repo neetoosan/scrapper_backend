@@ -1,0 +1,313 @@
+const scrapeButton = document.getElementById("scrapeButton");
+const scrapeWebsiteButton = document.getElementById("scrapeWebsiteButton");
+const scrapeWaButton = document.getElementById("scrapeWaButton");
+
+const copyButton = document.getElementById("copyButton");
+const exportButton = document.getElementById("exportButton");
+const statusNode = document.getElementById("status");
+const outputNode = document.getElementById("output");
+const summaryNode = document.getElementById("summary");
+
+const waConfigPanel = document.getElementById("waConfigPanel");
+const waTarget = document.getElementById("waTarget");
+const waAutoScroll = document.getElementById("waAutoScroll");
+const waStartScrapeBtn = document.getElementById("waStartScrapeBtn");
+const waCancelBtn = document.getElementById("waCancelBtn");
+
+
+
+const WEBSITE_PAGE_LIMIT = 12;
+
+let lastResult = null;
+
+scrapeButton.addEventListener("click", async () => {
+  setStatus("Scraping current page...");
+  setBusy("page", true);
+
+  try {
+    const tab = await getActiveTab();
+    const result = await scrapeCurrentPage(tab);
+
+    lastResult = result;
+    outputNode.value = JSON.stringify(result, null, 2);
+    renderSummary(result);
+    setResultActionsEnabled(true);
+    setStatus(`Scraped ${result.page.title || "page"} successfully.`);
+  } catch (error) {
+    clearResult(error.message || "Scrape failed.");
+  } finally {
+    setBusy("page", false);
+  }
+});
+
+scrapeWaButton.addEventListener("click", async () => {
+  try {
+    const tab = await getActiveTab();
+    if (!tab.url.includes("web.whatsapp.com")) {
+      setStatus("Error: Please open WhatsApp Web first.");
+      return;
+    }
+    waConfigPanel.classList.remove("hidden");
+  } catch (e) {
+    setStatus("Error checking tab.");
+  }
+});
+
+waCancelBtn.addEventListener("click", () => {
+  waConfigPanel.classList.add("hidden");
+});
+
+waStartScrapeBtn.addEventListener("click", async () => {
+  waConfigPanel.classList.add("hidden");
+  setStatus("Scraping WhatsApp contacts...");
+  setBusy("page", true);
+
+  try {
+    const tab = await getActiveTab();
+    const result = await sendMessageWithInjection(tab.id, {
+      action: "scrapePage",
+      options: {
+        waTarget: waTarget.value,
+        waAutoScroll: waAutoScroll.checked
+      }
+    });
+
+    if (result && result.error) throw new Error(result.error);
+
+    lastResult = normalizeScrapeResult(result, tab);
+    renderSummary(lastResult);
+    outputNode.value = JSON.stringify(lastResult, null, 2);
+    setResultActionsEnabled(true);
+    setStatus("Scraping complete.");
+  } catch (error) {
+    setStatus(`Error: ${error.message}`);
+    clearResult();
+    alert(`Scraping Failed:\n\n${error.message}`);
+  } finally {
+    setBusy("page", false);
+  }
+});
+
+
+
+scrapeWebsiteButton.addEventListener("click", async () => {
+  setStatus("Crawling website...");
+  setBusy("website", true);
+
+  try {
+    const tab = await getActiveTab();
+    const result = await crawlWebsite(tab);
+
+    lastResult = result;
+    outputNode.value = JSON.stringify(result, null, 2);
+    renderSummary(result);
+    setResultActionsEnabled(true);
+    setStatus(`Scanned ${result.pagesScanned} page(s) on this website.`);
+  } catch (error) {
+    clearResult(error.message || "Website crawl failed.");
+  } finally {
+    setBusy("website", false);
+  }
+});
+
+copyButton.addEventListener("click", async () => {
+  if (!lastResult) {
+    return;
+  }
+
+  await navigator.clipboard.writeText(JSON.stringify(lastResult, null, 2));
+  setStatus("Copied JSON to clipboard.");
+});
+
+exportButton.addEventListener("click", async () => {
+  if (!lastResult) {
+    return;
+  }
+
+  try {
+    const workbookBytes = buildWorkbook(lastResult);
+    const blob = new Blob([workbookBytes], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const safeTitle = sanitizeFileName(lastResult.page.title || "scraped-page");
+
+    link.href = url;
+    link.download = `${safeTitle}-contacts.xlsx`;
+    link.click();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1_000);
+    setStatus("Exported XLSX file.");
+  } catch (error) {
+    setStatus(error.message || "XLSX export failed.");
+  }
+});
+
+async function getActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    throw new Error("No active tab found.");
+  }
+
+  return tab;
+}
+
+async function sendMessageWithInjection(tabId, message) {
+  try {
+    return await chrome.tabs.sendMessage(tabId, message);
+  } catch (error) {
+    if (error.message.includes("Receiving end does not exist")) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["scraper.js"]
+      });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return await chrome.tabs.sendMessage(tabId, message);
+    }
+    throw error;
+  }
+}
+
+async function scrapeCurrentPage(tab) {
+  const result = await sendMessageWithInjection(tab.id, { action: "scrapePage" });
+  if (result && result.error) throw new Error(result.error);
+  return normalizeScrapeResult(result, tab);
+}
+
+async function crawlWebsite(tab) {
+  const currentPageResult = await scrapeCurrentPage(tab);
+  
+  if (/google\.com\/maps/i.test(tab.url || "")) {
+    return {
+      mode: "website-crawl",
+      page: { title: tab.title, url: tab.url },
+      names: currentPageResult.names,
+      companyNames: currentPageResult.companyNames,
+      phoneNumbers: currentPageResult.phoneNumbers,
+      whatsappNumbers: currentPageResult.whatsappNumbers,
+      socialMediaHandles: currentPageResult.socialMediaHandles,
+      emails: currentPageResult.emails,
+      websites: currentPageResult.websites,
+      addresses: currentPageResult.addresses,
+      listings: currentPageResult.listings || [],
+      crawlPages: [toCrawlPage(currentPageResult)],
+      pagesScanned: 1,
+      failedPages: []
+    };
+  }
+
+  const rawLinks = await sendMessageWithInjection(tab.id, { action: "collectCandidateLinks" });
+
+  const queue = isSupportedMarketplaceUrl(tab.url)
+    ? buildMarketplaceQueue(rawLinks || [], tab.url)
+    : buildWebsiteQueue(rawLinks || [], tab.url);
+  const crawlPages = [toCrawlPage(currentPageResult)];
+  const failedPages = [];
+
+  for (let index = 0; index < queue.length && crawlPages.length < WEBSITE_PAGE_LIMIT; index += 1) {
+    const pageUrl = queue[index];
+    setStatus(`Crawling page ${crawlPages.length + 1} of ${Math.min(queue.length + 1, WEBSITE_PAGE_LIMIT)}...`);
+
+    try {
+      const pageResult = await scrapeFetchedPage(pageUrl);
+      crawlPages.push(toCrawlPage(pageResult));
+    } catch (error) {
+      failedPages.push({ url: pageUrl, error: error.message || "Fetch failed." });
+    }
+  }
+
+  return buildWebsiteAggregate(tab, crawlPages, failedPages);
+}
+
+async function scrapeFetchedPage(pageUrl) {
+  const response = await fetch(pageUrl, { credentials: "include" });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${pageUrl}: ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("text/html")) {
+    throw new Error(`Skipped non-HTML page: ${pageUrl}`);
+  }
+
+  const html = await response.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  return normalizeScrapeResult(scrapeGenericDocument(doc, pageUrl), {
+    title: doc.title,
+    url: pageUrl
+  });
+}
+
+function setBusy(mode, isBusy) {
+  if (mode === "page") {
+    scrapeButton.disabled = isBusy;
+    scrapeButton.textContent = isBusy ? "Scraping..." : "Scrape This Page";
+    scrapeWebsiteButton.disabled = isBusy;
+  } else {
+    scrapeWebsiteButton.disabled = isBusy;
+    scrapeWebsiteButton.textContent = isBusy ? "Crawling..." : "Scrape Website";
+    scrapeButton.disabled = isBusy;
+  }
+}
+
+function setResultActionsEnabled(isEnabled) {
+  copyButton.disabled = !isEnabled;
+  exportButton.disabled = !isEnabled;
+}
+
+function clearResult(message) {
+  lastResult = null;
+  outputNode.value = "";
+  renderSummary(null);
+  setResultActionsEnabled(false);
+  setStatus(message);
+}
+
+function setStatus(message) {
+  statusNode.textContent = message;
+}
+
+function renderSummary(result) {
+  const counts = result
+    ? {
+        names: result.listings.length || result.names.length,
+        companies: result.listings.length || result.companyNames.length,
+        phones: countNonEmptyListingField(result.listings, "phoneNumbers", result.phoneNumbers.length),
+        whatsapp: countNonEmptyListingField(result.listings, "whatsappNumbers", result.whatsappNumbers.length),
+        emails: countNonEmptyListingField(result.listings, "emails", result.emails.length),
+        socials: countNonEmptyListingField(result.listings, "socialMediaHandles", result.socialMediaHandles.length),
+        websites: countNonEmptyListingField(result.listings, "website", result.websites?.length || 0),
+        addresses: countNonEmptyListingField(result.listings, "address", result.addresses?.length || 0)
+      }
+    : {
+        names: 0,
+        companies: 0,
+        phones: 0,
+        whatsapp: 0,
+        emails: 0,
+        socials: 0,
+        websites: 0,
+        addresses: 0
+      };
+
+  const values = Array.from(summaryNode.querySelectorAll("dd"));
+  if (values.length >= 8) {
+    values[0].textContent = counts.names;
+    values[1].textContent = counts.companies;
+    values[2].textContent = counts.phones;
+    values[3].textContent = counts.whatsapp;
+    values[4].textContent = counts.emails;
+    values[5].textContent = counts.socials;
+    values[6].textContent = counts.websites;
+    values[7].textContent = counts.addresses;
+  }
+}
+
+function sanitizeFileName(value) {
+  return value.replace(/[<>:"/\\|?*\x00-\x1F]/g, "-").replace(/\s+/g, "-").slice(0, 80);
+}
+
+

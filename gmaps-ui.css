@@ -1,0 +1,246 @@
+/* gmaps-ui.css — Edge Maps Scraper Widget Styles */
+
+#edgescraper-gmaps-root {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 999999;
+  font-family: "Google Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #e8eaed;
+}
+
+#edgescraper-gmaps-widget {
+  background: #1e1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  width: 320px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(12px);
+}
+
+#edgescraper-gmaps-widget.minimized #edgescraper-gmaps-body {
+  display: none;
+}
+
+/* ─── Header ────────────────────────────────────────────────────────────── */
+
+#edgescraper-gmaps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+  cursor: pointer;
+  user-select: none;
+  border-radius: 12px 12px 0 0;
+}
+
+#edgescraper-gmaps-widget.minimized #edgescraper-gmaps-header {
+  border-radius: 12px;
+}
+
+.edgescraper-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+#edgescraper-gmaps-toggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+#edgescraper-gmaps-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ─── Body ──────────────────────────────────────────────────────────────── */
+
+#edgescraper-gmaps-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ─── Status ────────────────────────────────────────────────────────────── */
+
+#edgescraper-gmaps-status {
+  font-size: 12px;
+  color: #9aa0a6;
+  min-height: 18px;
+  word-break: break-word;
+}
+
+/* ─── Progress Bar ──────────────────────────────────────────────────────── */
+
+#edgescraper-gmaps-progress-wrap {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#edgescraper-gmaps-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4285f4, #34a853);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+#edgescraper-gmaps-progress-label {
+  font-size: 11px;
+  color: #80868b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Stats Summary ─────────────────────────────────────────────────────── */
+
+#edgescraper-gmaps-summary {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.edgescraper-stat {
+  flex: 1;
+  min-width: 50px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 6px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.edgescraper-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: #8ab4f8;
+}
+
+.edgescraper-stat-lbl {
+  font-size: 10px;
+  color: #80868b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* ─── Options Row ───────────────────────────────────────────────────────── */
+
+.edgescraper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.edgescraper-row label {
+  font-size: 12px;
+  color: #bdc1c6;
+}
+
+.edgescraper-row select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e8eaed;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.edgescraper-row select:focus {
+  border-color: #4285f4;
+}
+
+.edgescraper-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #bdc1c6;
+}
+
+.edgescraper-checkbox input[type="checkbox"] {
+  accent-color: #4285f4;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* ─── Buttons ───────────────────────────────────────────────────────────── */
+
+.edgescraper-btn {
+  width: 100%;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.edgescraper-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edgescraper-btn-primary {
+  background: linear-gradient(135deg, #4285f4, #1a73e8);
+  color: #fff;
+}
+
+.edgescraper-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a95f5, #2b7de9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+}
+
+.edgescraper-btn-success {
+  background: linear-gradient(135deg, #34a853, #1e8e3e);
+  color: #fff;
+}
+
+.edgescraper-btn-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #46b965, #2fa04f);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(52, 168, 83, 0.3);
+}
+
+.edgescraper-btn-danger {
+  background: linear-gradient(135deg, #ea4335, #d33426);
+  color: #fff;
+}
+
+.edgescraper-btn-danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f05545, #e44536);
+  transform: translateY(-1px);
+}
+
+/* ─── Utility ───────────────────────────────────────────────────────────── */
+
+.edgescraper-hidden {
+  display: none !important;
+}

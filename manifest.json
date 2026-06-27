@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Edge Contact Scraper",
+  "version": "2.0.0",
+  "description": "Robustly scrape names, companies, phones, WhatsApp numbers, social handles, emails, websites, and addresses from Google Maps, Jiji, Yellow Pages, Facebook, and any public page.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_title": "Edge Contact Scraper",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["interceptor.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": ["*://*.google.com/maps/*", "*://google.com/maps/*", "*://www.google.com/maps/*"],
+      "js": ["excel-builder.js", "scraper.js"]
+    },
+    {
+      "matches": ["*://*.google.com/maps/*", "*://google.com/maps/*", "*://www.google.com/maps/*"],
+      "css": ["gmaps-ui.css"],
+      "js": ["excel-builder.js", "gmaps-scraper.js", "gmaps-ui.js"]
+    }
+  ]
+}

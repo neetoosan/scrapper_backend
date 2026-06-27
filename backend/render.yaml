@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: edgewebscraper-backend
+    runtime: docker
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: SCRAPER_MAX_CONCURRENT_JOBS
+        value: "5"
+      - key: SCRAPER_DEFAULT_MAX_PAGES
+        value: "12"
+      - key: SCRAPER_DOWNLOAD_DELAY
+        value: "0.5"

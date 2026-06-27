@@ -1,0 +1,224 @@
+:root {
+  color-scheme: light;
+  --bg: #f6f2e8;
+  --panel: #fffaf1;
+  --ink: #1b1a17;
+  --muted: #5b564d;
+  --accent: #0a7f6f;
+  --accent-strong: #075f54;
+  --line: #dfd4c2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 420px;
+  background:
+    radial-gradient(circle at top right, rgba(10, 127, 111, 0.14), transparent 36%),
+    linear-gradient(180deg, #fbf6ee 0%, var(--bg) 100%);
+  color: var(--ink);
+  font: 14px/1.45 "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.app {
+  padding: 16px;
+}
+
+.hero {
+  margin-bottom: 14px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+button.whatsapp-btn {
+  background: #25D366;
+  color: white;
+}
+button.whatsapp-btn:hover {
+  background: #128C7E;
+}
+
+
+.config-panel {
+  background: #f0f7f4;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #c9e6db;
+}
+
+.config-panel.hidden {
+  display: none;
+}
+
+.config-panel h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.config-panel .help-text {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 16px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.form-group.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group.checkbox label {
+  margin-bottom: 0;
+  font-weight: normal;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.panel-actions button {
+  flex: 1;
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+@media (max-width: 460px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+button:hover {
+  background: var(--accent-strong);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+button.secondary {
+  background: #e7f2ef;
+  color: var(--accent-strong);
+}
+
+.status {
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 250, 241, 0.88);
+  padding: 10px 12px;
+}
+
+.results {
+  display: grid;
+  gap: 12px;
+}
+
+.result-block {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 12px;
+  box-shadow: 0 10px 22px rgba(31, 24, 13, 0.06);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.summary div {
+  border-radius: 12px;
+  background: #f3ecdf;
+  padding: 10px;
+}
+
+.summary dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.summary dd {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+textarea {
+  width: 100%;
+  min-height: 260px;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  resize: vertical;
+  background: #fffdf8;
+  color: var(--ink);
+  font: 12px/1.4 Consolas, "Courier New", monospace;
+}
