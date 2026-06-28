@@ -14,6 +14,14 @@
         <p class="subtitle">Extract contacts from Google Maps, WhatsApp, Facebook, Jiji, and more.</p>
       </header>
 
+      <section class="engine-bar">
+        <label for="backendSelect"><strong>Scrape Engine:</strong></label>
+        <select id="backendSelect" class="engine-select">
+          <option value="cloud">🌐 Cloud Server (Render Scrapy)</option>
+          <option value="local" selected>💻 Local Browser</option>
+        </select>
+      </section>
+
       <section class="controls">
         <button id="scrapeButton" type="button">Scrape This Page</button>
         <button id="scrapeWebsiteButton" type="button">Scrape Website</button>

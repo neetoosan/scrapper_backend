@@ -16,7 +16,10 @@ const waCancelBtn = document.getElementById("waCancelBtn");
 
 
 
+const backendSelect = document.getElementById("backendSelect");
+
 const WEBSITE_PAGE_LIMIT = 12;
+const CLOUD_API_BASE = "https://edgewebscraper-backend.onrender.com";
 
 let lastResult = null;
 
@@ -170,12 +173,18 @@ async function sendMessageWithInjection(tabId, message) {
 }
 
 async function scrapeCurrentPage(tab) {
+  if (backendSelect && backendSelect.value === "cloud") {
+    return await scrapeViaCloud(tab, "single");
+  }
   const result = await sendMessageWithInjection(tab.id, { action: "scrapePage" });
   if (result && result.error) throw new Error(result.error);
   return normalizeScrapeResult(result, tab);
 }
 
 async function crawlWebsite(tab) {
+  if (backendSelect && backendSelect.value === "cloud") {
+    return await scrapeViaCloud(tab, "crawl");
+  }
   const currentPageResult = await scrapeCurrentPage(tab);
   
   if (/google\.com\/maps/i.test(tab.url || "")) {
@@ -309,5 +318,84 @@ function renderSummary(result) {
 function sanitizeFileName(value) {
   return value.replace(/[<>:"/\\|?*\x00-\x1F]/g, "-").replace(/\s+/g, "-").slice(0, 80);
 }
+
+async function scrapeViaCloud(tab, mode = "single") {
+  setStatus("Connecting to Cloud Scraper (Render)...");
+
+  const submitRes = await fetch(`${CLOUD_API_BASE}/api/scrape`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: tab.url,
+      mode: mode,
+      max_pages: WEBSITE_PAGE_LIMIT
+    })
+  });
+
+  if (!submitRes.ok) {
+    const errData = await submitRes.json().catch(() => ({}));
+    throw new Error(errData.detail || `Cloud server error (${submitRes.status})`);
+  }
+
+  const { job_id } = await submitRes.json();
+  setStatus(`Cloud job submitted (${job_id}). Running spider on Render...`);
+
+  for (let i = 0; i < 60; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const statusRes = await fetch(`${CLOUD_API_BASE}/api/scrape/${job_id}`);
+    if (!statusRes.ok) continue;
+
+    const job = await statusRes.json();
+    if (job.status === "running") {
+      setStatus(job.progress || "Cloud spider active on Render...");
+    } else if (job.status === "completed") {
+      return formatCloudResults(job, tab);
+    } else if (job.status === "failed") {
+      throw new Error(job.error || "Cloud scrape job failed on server.");
+    }
+  }
+
+  throw new Error("Job timed out waiting for cloud server response.");
+}
+
+function formatCloudResults(job, tab) {
+  const listings = job.listings || [];
+  const names = [];
+  const companyNames = [];
+  const phoneNumbers = [];
+  const whatsappNumbers = [];
+  const socialMediaHandles = [];
+  const emails = [];
+  const websites = [];
+  const addresses = [];
+
+  listings.forEach((item) => {
+    if (item.name) names.push(item.name);
+    if (item.company_name) companyNames.push(item.company_name);
+    if (Array.isArray(item.phone_numbers)) phoneNumbers.push(...item.phone_numbers);
+    if (Array.isArray(item.whatsapp_numbers)) whatsappNumbers.push(...item.whatsapp_numbers);
+    if (Array.isArray(item.social_media_handles)) socialMediaHandles.push(...item.social_media_handles);
+    if (Array.isArray(item.emails)) emails.push(...item.emails);
+    if (item.website) websites.push(item.website);
+    if (item.address) addresses.push(item.address);
+  });
+
+  return {
+    mode: job.mode,
+    page: { title: tab.title || job.url, url: tab.url },
+    names: [...new Set(names)],
+    companyNames: [...new Set(companyNames)],
+    phoneNumbers: [...new Set(phoneNumbers)],
+    whatsappNumbers: [...new Set(whatsappNumbers)],
+    socialMediaHandles: [...new Set(socialMediaHandles)],
+    emails: [...new Set(emails)],
+    websites: [...new Set(websites)],
+    addresses: [...new Set(addresses)],
+    listings: listings,
+    pagesScanned: job.total_listings || 1,
+    failedPages: []
+  };
+}
+
 
 

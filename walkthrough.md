@@ -80,6 +80,12 @@ Updated `API_PORT` to dynamically inspect the `PORT` environment variable inject
 ### [MODIFY] [backend/Dockerfile](file:///c:/Users/HP/Documents/work/edgewebscraper/backend/Dockerfile)
 Updated `HEALTHCHECK` and `CMD` to enable shell variable expansion for dynamic port binding `${PORT:-8000}`.
 
+### [MODIFY] [popup.html](file:///c:/Users/HP/Documents/work/edgewebscraper/popup.html), [popup.css](file:///c:/Users/HP/Documents/work/edgewebscraper/popup.css), & [popup.js](file:///c:/Users/HP/Documents/work/edgewebscraper/popup.js)
+Added a **Scrape Engine** mode selector (`🌐 Cloud Server (Render Scrapy)` vs `💻 Local Browser`). Connected the popup UI to communicate with `https://edgewebscraper-backend.onrender.com` for cloud-based scraping and multi-page site crawling.
+
+### [MODIFY] [backend/scraper/settings.py](file:///c:/Users/HP/Documents/work/edgewebscraper/backend/scraper/settings.py) & [backend/runner.py](file:///c:/Users/HP/Documents/work/edgewebscraper/backend/runner.py)
+Fixed Linux reactor mismatch error (`EPollReactor` vs `AsyncioSelectorReactor`) by setting `TWISTED_REACTOR = None` so Scrapy seamlessly reuses Crochet's pre-initialized Linux event loop on Render.
+
 ---
 
 ## Data Flow

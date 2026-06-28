@@ -57,8 +57,8 @@ LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
 # Request fingerprinting (Scrapy 2.7+)
 REQUEST_FINGERPRINTER_IMPLEMENTATION = '2.7'
 
-# Use default reactor for crochet compatibility
-# TWISTED_REACTOR = 'twisted.internet.asyncioreactor.AsyncioSelectorReactor'
+# Disable reactor check so Scrapy uses whichever reactor crochet has initialized (EPollReactor on Linux/Render)
+TWISTED_REACTOR = None
 
 # Feed export encoding
 FEED_EXPORT_ENCODING = 'utf-8'

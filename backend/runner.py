@@ -103,8 +103,9 @@ class ScrapeRunner:
 
     def __init__(self):
         self._jobs: dict[str, JobState] = {}
-        self._lock = threading.Lock()
-        self._runner = CrawlerRunner(get_project_settings())
+        settings = get_project_settings()
+        settings.set('TWISTED_REACTOR', None, priority='cmdline')
+        self._runner = CrawlerRunner(settings)
 
     def submit_job(self, url: str, mode: str = 'single',
                    max_pages: int = 12, spider_name: str | None = None) -> str:
