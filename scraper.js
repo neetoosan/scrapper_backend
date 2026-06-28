@@ -481,10 +481,10 @@ function isYellowPagesBusinessUrl(url) {
 function isFacebookBusinessPage(url) {
   try {
     const parsed = new URL(url);
-    return /facebook\.com/i.test(parsed.hostname)
-      && !/\/groups\//i.test(parsed.pathname)
-      && !/\/events\//i.test(parsed.pathname)
-      && !/\/marketplace\//i.test(parsed.pathname);
+    if (!/facebook\.com/i.test(parsed.hostname)) return false;
+    const path = parsed.pathname.toLowerCase().replace(/\/$/, '');
+    if (path === '' || path === '/home.php' || path === '/feed' || path === '/login') return false;
+    return !/^\/(?:groups|events|marketplace|watch|reels|stories|messages|notifications|friends)(?:\/|$)/i.test(path);
   } catch { 
     return false; 
   }
@@ -782,6 +782,118 @@ function scrapeFacebookBusinessPage(doc, pageUrl) {
   };
   
   return finalizeMarketplaceResult(doc.title || "", pageUrl, [listing]);
+}
+
+function scrapeGoogleSearchPage(doc, pageUrl) {
+  const listingsMap = new Map();
+  
+  // Organic results, Places local pack, Knowledge Graph cards
+  const blocks = Array.from(doc.querySelectorAll('.g, .VkpGBb, div[data-attrid], div[jscontroller], .u1yAec, .tF25fe, .VkpGBb'));
+  
+  for (const block of blocks) {
+    const text = collectVisibleText(block);
+    if (!text || text.length < 5) continue;
+
+    const headingEl = block.querySelector('h3, [role="heading"], .OSrAec, .rGfe3e, .dbg0pd');
+    let name = headingEl ? headingEl.textContent.trim() : '';
+    if (!name || name.length < 2 || name.toLowerCase().includes('people also ask')) continue;
+    name = cleanBusinessName(name);
+
+    const key = name.toLowerCase();
+    if (listingsMap.has(key)) continue;
+
+    const phones = extractPhonesFromText(text);
+    const emails = extractEmailsFromText(text);
+    const whatsapp = extractWhatsappNumbersFromElement(block);
+
+    let website = "";
+    const links = Array.from(block.querySelectorAll('a[href]'));
+    for (const a of links) {
+      const href = a.href;
+      if (/^https?:/i.test(href) && !/google\.[a-z.]+/i.test(href) && !/schema\.org/i.test(href) && !/googleusercontent/i.test(href)) {
+        website = href;
+        break;
+      }
+    }
+
+    const addresses = extractAddressesFromText(text);
+
+    if (phones.length > 0 || emails.length > 0 || website || addresses.length > 0 || headingEl) {
+      listingsMap.set(key, {
+        name,
+        companyName: name,
+        phoneNumbers: phones,
+        whatsappNumbers: whatsapp,
+        socialMediaHandles: [],
+        emails,
+        website,
+        address: addresses[0] || "",
+        sourceUrl: pageUrl,
+        pageTitle: doc.title || ""
+      });
+    }
+  }
+
+  if (listingsMap.size === 0) {
+    return scrapeGenericDocument(doc, pageUrl);
+  }
+
+  return finalizeMarketplaceResult(doc.title || "Google Search Results", pageUrl, Array.from(listingsMap.values()));
+}
+
+function scrapeBingSearchPage(doc, pageUrl) {
+  const listingsMap = new Map();
+  const blocks = Array.from(doc.querySelectorAll('.b_algo, .b_ans, .b_entityTP'));
+  
+  for (const block of blocks) {
+    const text = collectVisibleText(block);
+    if (!text) continue;
+
+    const headingEl = block.querySelector('h2, h3');
+    let name = headingEl ? headingEl.textContent.trim() : '';
+    if (!name || name.length < 2) continue;
+    name = cleanBusinessName(name);
+
+    const key = name.toLowerCase();
+    if (listingsMap.has(key)) continue;
+
+    const phones = extractPhonesFromText(text);
+    const emails = extractEmailsFromText(text);
+    const whatsapp = extractWhatsappNumbersFromElement(block);
+
+    let website = "";
+    const links = Array.from(block.querySelectorAll('a[href]'));
+    for (const a of links) {
+      const href = a.href;
+      if (/^https?:/i.test(href) && !/bing\.com/i.test(href)) {
+        website = href;
+        break;
+      }
+    }
+
+    const addresses = extractAddressesFromText(text);
+
+    if (phones.length > 0 || emails.length > 0 || website || addresses.length > 0) {
+      listingsMap.set(key, {
+        name,
+        companyName: name,
+        phoneNumbers: phones,
+        whatsappNumbers: whatsapp,
+        socialMediaHandles: [],
+        emails,
+        website,
+        address: addresses[0] || "",
+        sourceUrl: pageUrl,
+        pageTitle: doc.title || ""
+      });
+    }
+  }
+
+  if (listingsMap.size === 0) {
+    return scrapeGenericDocument(doc, pageUrl);
+  }
+
+  return finalizeMarketplaceResult(doc.title || "Bing Search Results", pageUrl, Array.from(listingsMap.values()));
 }
 
 async function scrapeWhatsAppWebDocument(doc, pageUrl, options = {}) {

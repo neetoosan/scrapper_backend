@@ -51,6 +51,13 @@ class FacebookSpider(scrapy.Spider):
         )
 
     def parse(self, response):
+        page_title = response.css('title::text').get('') or ''
+        url_path = response.url.split('facebook.com')[-1].split('?')[0].rstrip('/')
+        
+        if 'log in' in page_title.lower() or 'log into' in page_title.lower() or url_path in ('', '/', '/login'):
+            self.logger.warning(f"Facebook root or login page detected: {response.url}")
+            raise Exception("Facebook root/login page reached. Facebook blocks unauthenticated cloud scraping. Please provide a direct public Facebook Business Page URL or use Local Browser mode.")
+
         visible_text = ' '.join(response.css('body ::text').getall())
 
         # Name

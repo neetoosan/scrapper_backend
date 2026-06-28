@@ -172,7 +172,37 @@ async function sendMessageWithInjection(tabId, message) {
   }
 }
 
+function isFacebookUrl(url) {
+  try { return /facebook\.com/i.test(new URL(url).hostname); } catch { return false; }
+}
+
+function isFacebookRootOrFeed(url) {
+  try {
+    const parsed = new URL(url);
+    if (!/facebook\.com/i.test(parsed.hostname)) return false;
+    const path = parsed.pathname.toLowerCase().replace(/\/$/, '');
+    return path === '' || path === '/home.php' || path === '/feed' || path === '/login' || path === '/watch' || path === '/stories';
+  } catch {
+    return false;
+  }
+}
+
 async function scrapeCurrentPage(tab) {
+  if (isFacebookUrl(tab.url)) {
+    if (isFacebookRootOrFeed(tab.url)) {
+      throw new Error("You are on the Facebook Home Feed / Main Page. Please navigate to a specific Facebook Business Page or Profile to scrape contact information.");
+    }
+    if (backendSelect && backendSelect.value === "cloud") {
+      throw new Error("Facebook blocks automated Cloud server scraping. Please switch 'Scrape Engine' to '💻 Local Browser' to scrape Facebook directly from your active browser tab.");
+    }
+  }
+
+  if (/google\.[a-z.]+\/search|bing\.com\/search/i.test(tab.url || "")) {
+    if (backendSelect && backendSelect.value === "cloud") {
+      throw new Error("Google/Bing search engines block automated Cloud server requests. Please switch 'Scrape Engine' to '💻 Local Browser' to scrape search results directly from your active browser tab.");
+    }
+  }
+
   if (backendSelect && backendSelect.value === "cloud") {
     return await scrapeViaCloud(tab, "single");
   }
