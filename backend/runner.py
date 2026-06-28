@@ -103,6 +103,7 @@ class ScrapeRunner:
 
     def __init__(self):
         self._jobs: dict[str, JobState] = {}
+        self._lock = threading.Lock()
         settings = get_project_settings()
         settings.set('TWISTED_REACTOR', None, priority='cmdline')
         self._runner = CrawlerRunner(settings)
