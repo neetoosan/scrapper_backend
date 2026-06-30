@@ -787,38 +787,47 @@ function scrapeFacebookBusinessPage(doc, pageUrl) {
 function scrapeGoogleSearchPage(doc, pageUrl) {
   const listingsMap = new Map();
   
-  // Organic results, Places local pack, Knowledge Graph cards
-  const blocks = Array.from(doc.querySelectorAll('.g, .VkpGBb, div[data-attrid], div[jscontroller], .u1yAec, .tF25fe, .VkpGBb'));
+  // Select exactly organic results and Local Map pack entries. Avoid matching entire layout wrappers.
+  const blocks = Array.from(doc.querySelectorAll('.g, .VkpGBb'));
   
   for (const block of blocks) {
+    const isLocalPack = block.classList.contains('VkpGBb') || block.querySelector('.dbg0pd, .VkpGBb');
     const text = collectVisibleText(block);
     if (!text || text.length < 5) continue;
 
-    const headingEl = block.querySelector('h3, [role="heading"], .OSrAec, .rGfe3e, .dbg0pd');
+    const headingEl = block.querySelector('h3, [role="heading"], .OSrAec, .dbg0pd');
     let name = headingEl ? headingEl.textContent.trim() : '';
-    if (!name || name.length < 2 || name.toLowerCase().includes('people also ask')) continue;
+    if (!name || name.length < 2 || name.toLowerCase().includes('people also ask') || name.toLowerCase().includes('related searches')) continue;
     name = cleanBusinessName(name);
 
     const key = name.toLowerCase();
     if (listingsMap.has(key)) continue;
 
-    const phones = extractPhonesFromText(text);
-    const emails = extractEmailsFromText(text);
-    const whatsapp = extractWhatsappNumbersFromElement(block);
+    // Only extract phone/address/emails from verified Local Pack entries
+    // Avoid parsing snippet numbers for organic links to exclude coordinate/ID noise
+    let phones = [];
+    let emails = [];
+    let whatsapp = [];
+    let addresses = [];
+
+    if (isLocalPack) {
+      phones = extractPhonesFromText(text);
+      emails = extractEmailsFromText(text);
+      whatsapp = extractWhatsappNumbersFromElement(block);
+      addresses = extractAddressesFromText(text);
+    }
 
     let website = "";
     const links = Array.from(block.querySelectorAll('a[href]'));
     for (const a of links) {
       const href = a.href;
-      if (/^https?:/i.test(href) && !/google\.[a-z.]+/i.test(href) && !/schema\.org/i.test(href) && !/googleusercontent/i.test(href)) {
+      if (/^https?:/i.test(href) && !/google\.[a-z.]+/i.test(href) && !/schema\.org/i.test(href) && !/googleusercontent/i.test(href) && !/youtube\.com/i.test(href)) {
         website = href;
         break;
       }
     }
 
-    const addresses = extractAddressesFromText(text);
-
-    if (phones.length > 0 || emails.length > 0 || website || addresses.length > 0 || headingEl) {
+    if (website || phones.length > 0 || emails.length > 0) {
       listingsMap.set(key, {
         name,
         companyName: name,
@@ -846,6 +855,7 @@ function scrapeBingSearchPage(doc, pageUrl) {
   const blocks = Array.from(doc.querySelectorAll('.b_algo, .b_ans, .b_entityTP'));
   
   for (const block of blocks) {
+    const isEntity = block.classList.contains('b_ans') || block.classList.contains('b_entityTP');
     const text = collectVisibleText(block);
     if (!text) continue;
 
@@ -857,23 +867,29 @@ function scrapeBingSearchPage(doc, pageUrl) {
     const key = name.toLowerCase();
     if (listingsMap.has(key)) continue;
 
-    const phones = extractPhonesFromText(text);
-    const emails = extractEmailsFromText(text);
-    const whatsapp = extractWhatsappNumbersFromElement(block);
+    let phones = [];
+    let emails = [];
+    let whatsapp = [];
+    let addresses = [];
+
+    if (isEntity) {
+      phones = extractPhonesFromText(text);
+      emails = extractEmailsFromText(text);
+      whatsapp = extractWhatsappNumbersFromElement(block);
+      addresses = extractAddressesFromText(text);
+    }
 
     let website = "";
     const links = Array.from(block.querySelectorAll('a[href]'));
     for (const a of links) {
       const href = a.href;
-      if (/^https?:/i.test(href) && !/bing\.com/i.test(href)) {
+      if (/^https?:/i.test(href) && !/bing\.com/i.test(href) && !/youtube\.com/i.test(href)) {
         website = href;
         break;
       }
     }
 
-    const addresses = extractAddressesFromText(text);
-
-    if (phones.length > 0 || emails.length > 0 || website || addresses.length > 0) {
+    if (website || phones.length > 0 || emails.length > 0) {
       listingsMap.set(key, {
         name,
         companyName: name,
