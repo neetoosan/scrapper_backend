@@ -327,7 +327,16 @@ function buildCellXml(rowNumber, cellIndex, value, freezeRowNumber) {
   
   const valStr = value == null ? "" : String(value);
   if (valStr.startsWith("=")) {
-    return `<c r="${reference}"${style}><f>${escapeXml(valStr.slice(1))}</f></c>`;
+    // Extract the label/friendly name from the HYPERLINK formula to use as the cached value
+    // e.g. =HYPERLINK("url", "friendly name")
+    let cachedVal = "";
+    const match = valStr.match(/,\s*"([^"]*)"\s*\)$/);
+    if (match) {
+      cachedVal = match[1];
+    }
+    const formulaXml = escapeXmlText(valStr.slice(1));
+    const valXml = cachedVal ? `<v>${escapeXml(cachedVal)}</v>` : "";
+    return `<c r="${reference}" t="str"${style}><f>${formulaXml}</f>${valXml}</c>`;
   } else {
     return `<c r="${reference}" t="inlineStr"${style}><is><t>${escapeXml(valStr)}</t></is></c>`;
   }
@@ -354,6 +363,14 @@ function escapeXml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
+}
+
+function escapeXmlText(value) {
+  return String(value)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function xmlBytes(xml) {
