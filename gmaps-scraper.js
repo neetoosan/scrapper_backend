@@ -413,13 +413,20 @@
       }
     }
 
-    const authorityMatch = html.match(/data-item-id=["']authority[^"']*["'][\s\S]{0,900}?href=["']([^"']+)["']/i);
+    const cleanHtml = html
+      .replace(/\\u002f/gi, "/")
+      .replace(/\\u003d/gi, "=")
+      .replace(/\\u0026/gi, "&")
+      .replace(/\\\//g, "/");
+
+    const authorityMatch = cleanHtml.match(/data-item-id=["']authority[^"']*["'][\s\S]{0,900}?href=["']([^"']+)["']/i);
     if (authorityMatch) {
       const unwrapped = unwrapGoogleUrl(authorityMatch[1]);
       if (isUsableWebsite(unwrapped)) return normalizedWebsite(unwrapped);
     }
 
-    const urls = html.match(/https?:\/\/[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s"'<>\\]*)?/gi) || [];
+    // Match URLs and exclude escaped characters like \\/ by matching slashes correctly
+    const urls = cleanHtml.match(/https?:\/\/[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s"'<>\\\/]*)?/gi) || [];
     for (const url of urls) {
       const unwrapped = unwrapGoogleUrl(url);
       if (isUsableWebsite(unwrapped)) return normalizedWebsite(unwrapped);
@@ -454,14 +461,20 @@
       if (label) return normalizeText(label).replace(/^Address:\s*/i, "");
     }
 
+    const cleanHtml = html
+      .replace(/\\u002f/gi, "/")
+      .replace(/\\u003d/gi, "=")
+      .replace(/\\u0026/gi, "&")
+      .replace(/\\\//g, "/");
+
     const dataAddress = extractTextNearDataItem(
-      html,
+      cleanHtml,
       /data-item-id=["']address[^"']*["']/i,
       /aria-label=["']([^"']+)["']/i
     ).replace(/^Address:\s*/i, "");
     if (dataAddress) return dataAddress;
 
-    const meta = html.match(/<meta[^>]*(?:name=["']description["'][^>]*content|content)=["']([^"']+)["'][^>]*>/i);
+    const meta = cleanHtml.match(/<meta[^>]*(?:name=["']description["'][^>]*content|content)=["']([^"']+)["'][^>]*>/i);
     if (meta && meta[1]) {
       const parts = normalizeText(meta[1]).split(/[·•|]/).map(normalizeText);
       const address = [...parts]
@@ -490,20 +503,32 @@
       }
     }
 
-    const phoneAttr = html.match(/data-item-id=["']phone:(?:tel:)?([^"']+)["']/i);
+    const cleanHtml = html
+      .replace(/\\u002f/gi, "/")
+      .replace(/\\u003d/gi, "=")
+      .replace(/\\u0026/gi, "&")
+      .replace(/\\\//g, "/");
+
+    const telMatch = cleanHtml.match(/tel:(\+?[0-9\s.\-()]{7,20})/i);
+    if (telMatch) {
+      const phone = normalizePhone(telMatch[1]);
+      if (phone) return phone;
+    }
+
+    const phoneAttr = cleanHtml.match(/data-item-id=["']phone:(?:tel:)?([^"']+)["']/i);
     if (phoneAttr && phoneAttr[1]) {
       const phone = normalizePhone(decodeURIComponent(phoneAttr[1]));
       if (phone) return phone;
     }
 
-    const telHref = html.match(/href=["']tel:([^"']+)["']/i);
+    const telHref = cleanHtml.match(/href=["']tel:([^"']+)["']/i);
     if (telHref && telHref[1]) {
       const phone = normalizePhone(decodeURIComponent(telHref[1]));
       if (phone) return phone;
     }
 
     const contextualPhone = extractTextNearDataItem(
-      html,
+      cleanHtml,
       /(?:phone|telephone|tel:)/i,
       /(\+?\(?\d{2,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,4}(?:[\s.-]?\d{1,4})?)/i
     );

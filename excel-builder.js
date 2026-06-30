@@ -4,7 +4,7 @@
 
 function buildGoogleMapsWorkbook(businesses, pageTitle) {
   var rows = buildGoogleMapsRows(businesses);
-  var sheetXml = buildSheetXml(rows);
+  var sheetXml = buildSheetXml(rows, 1);
   var title = pageTitle || "Google Maps Scraped Data";
   var files = [
     {
@@ -77,7 +77,18 @@ function buildGoogleMapsRows(businesses) {
 // ─── Legacy Workbook Builder (for generic website scraping) ─────────────────
 function buildWorkbook(result) {
   const rows = buildRows(result);
-  const sheetXml = buildSheetXml(rows);
+  
+  // Determine freeze row index
+  let freezeRow = 0;
+  if (Array.isArray(result.crawlPages) && result.crawlPages.length > 0) {
+    freezeRow = 5;
+  } else if (Array.isArray(result.listings) && result.listings.length > 0) {
+    freezeRow = 4;
+  } else {
+    freezeRow = 4;
+  }
+
+  const sheetXml = buildSheetXml(rows, freezeRow);
   const files = [
     {
       name: "[Content_Types].xml",
@@ -87,6 +98,7 @@ function buildWorkbook(result) {
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
   <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>`)
@@ -132,7 +144,12 @@ function buildWorkbook(result) {
       data: xmlBytes(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`)
+    },
+    {
+      name: "xl/styles.xml",
+      data: xmlBytes('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>')
     },
     {
       name: "xl/worksheets/sheet1.xml",
@@ -248,29 +265,36 @@ function buildListingRows(result) {
   return rows;
 }
 
-function buildSheetXml(rows) {
+function buildSheetXml(rows, freezeRowNumber) {
   const rowXml = rows
     .map((cells, rowIndex) => {
       const cellXml = cells
-        .map((value, cellIndex) => buildCellXml(rowIndex + 1, cellIndex, value))
+        .map((value, cellIndex) => buildCellXml(rowIndex + 1, cellIndex, value, freezeRowNumber))
         .join("");
       return `<row r="${rowIndex + 1}">${cellXml}</row>`;
     })
     .join("");
 
   const columnCount = Math.max(...rows.map((row) => row.length), 1);
+  const endCol = columnName(columnCount - 1);
+
+  let paneXml = "";
+  if (freezeRowNumber) {
+    paneXml = `<sheetViews><sheetView tabSelected="1" workbookViewId="0"><pane ySplit="${freezeRowNumber}" topLeftCell="A${freezeRowNumber + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`;
+  } else {
+    paneXml = `<sheetViews><sheetView workbookViewId="0"/></sheetViews>`;
+  }
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:${columnName(columnCount - 1)}${rows.length}"/>
-  <sheetViews>
-    <sheetView workbookViewId="0"/>
-  </sheetViews>
+  <dimension ref="A1:${endCol}${rows.length}"/>
+  ${paneXml}
   <sheetFormatPr defaultRowHeight="15"/>
   <cols>
     ${buildColumnXml(columnCount)}
   </cols>
   <sheetData>${rowXml}</sheetData>
+  <autoFilter ref="A${freezeRowNumber || 1}:${endCol}${rows.length}"/>
 </worksheet>`;
 }
 
@@ -286,9 +310,17 @@ function buildColumnXml(columnCount) {
   return columns.join("");
 }
 
-function buildCellXml(rowNumber, cellIndex, value) {
+function buildCellXml(rowNumber, cellIndex, value, freezeRowNumber) {
   const reference = `${columnName(cellIndex)}${rowNumber}`;
-  return `<c r="${reference}" t="inlineStr"><is><t>${escapeXml(value)}</t></is></c>`;
+  let style = "";
+  if (freezeRowNumber) {
+    if (rowNumber <= freezeRowNumber) {
+      style = ' s="1"';
+    }
+  } else if (rowNumber === 1) {
+    style = ' s="1"';
+  }
+  return `<c r="${reference}" t="inlineStr"${style}><is><t>${escapeXml(value)}</t></is></c>`;
 }
 
 function columnName(index) {
