@@ -46,15 +46,20 @@ function buildGoogleMapsWorkbook(businesses, pageTitle) {
 function buildGoogleMapsRows(businesses) {
   var header = [
     "Name", "Category", "Rating", "Reviews", "Phone",
-    "Website", "Email", "Address", "Hours",
-    "Facebook", "Instagram", "Twitter", "LinkedIn", "Place ID", "Google Maps URL"
+    "Website", "Email", "Address", "Hours", "Socials"
   ];
   var rows = [header];
 
   for (var i = 0; i < businesses.length; i++) {
     var b = businesses[i];
+    var cleanName = (b.name || "").replace(/"/g, '""');
+    var nameCell = b.placeUrl ? `=HYPERLINK("${b.placeUrl}", "${cleanName}")` : (b.name || "");
+    
+    var socialsList = [b.facebook, b.instagram, b.twitter, b.linkedin].filter(Boolean);
+    var socialsStr = socialsList.join(", ");
+
     rows.push([
-      b.name || "",
+      nameCell,
       b.category || "",
       b.rating || "",
       b.reviewCount || "",
@@ -63,12 +68,7 @@ function buildGoogleMapsRows(businesses) {
       b.email || "",
       b.address || "",
       b.hours || "",
-      b.facebook || "",
-      b.instagram || "",
-      b.twitter || "",
-      b.linkedin || "",
-      b.placeId || "",
-      b.placeUrl || ""
+      socialsStr
     ]);
   }
   return rows;
@@ -185,7 +185,7 @@ function buildRows(result) {
     ["Page title", result.page.title || ""],
     ["Page URL", result.page.url || ""],
     [],
-    ["Name", "Company", "Phone", "WhatsApp", "Social handle", "Email", "Website", "Address", "Source URL"]
+    ["Name", "Company", "Phone", "WhatsApp", "Socials", "Email", "Website", "Address"]
   ];
 
   for (let index = 0; index < maxLength; index += 1) {
@@ -197,8 +197,7 @@ function buildRows(result) {
       result.socialMediaHandles[index] || "",
       result.emails[index] || "",
       (result.websites && result.websites[index]) || "",
-      (result.addresses && result.addresses[index]) || "",
-      result.page.url || ""
+      (result.addresses && result.addresses[index]) || ""
     ]);
   }
 
@@ -211,14 +210,17 @@ function buildCrawlRows(result) {
     ["Page URL", result.page.url || ""],
     ["Pages scanned", String(result.pagesScanned || result.crawlPages.length || 0)],
     [],
-    ["Source page", "Source URL", "Names", "Companies", "Phones", "WhatsApp", "Social handles", "Emails", "Website", "Address", "Category", "Rating", "Review count"]
+    ["Source Page", "Names", "Companies", "Phones", "WhatsApp", "Socials", "Emails", "Website", "Address", "Category", "Rating", "Review count"]
   ];
 
   for (const item of result.crawlPages) {
     const firstListing = Array.isArray(item.listings) && item.listings.length > 0 ? item.listings[0] : {};
+    
+    const cleanTitle = (item.pageTitle || "Page Link").replace(/"/g, '""');
+    const sourceCell = item.sourceUrl ? `=HYPERLINK("${item.sourceUrl}", "${cleanTitle}")` : (item.pageTitle || "");
+
     rows.push([
-      item.pageTitle || "",
-      item.sourceUrl || "",
+      sourceCell,
       (item.names || []).join(", "),
       (item.companyNames || []).join(", "),
       (item.phoneNumbers || []).join(", "),
@@ -241,12 +243,15 @@ function buildListingRows(result) {
     ["Page title", result.page.title || ""],
     ["Page URL", result.page.url || ""],
     [],
-    ["Name", "Company", "Phone", "WhatsApp", "Social handle", "Email", "Website", "Address", "Category", "Rating", "Review count", "Source URL", "Source page"]
+    ["Name", "Company", "Phone", "WhatsApp", "Socials", "Email", "Website", "Address", "Category", "Rating", "Review count", "Source Page"]
   ];
 
   for (const listing of result.listings) {
+    const cleanName = (listing.name || "Listing").replace(/"/g, '""');
+    const nameCell = listing.sourceUrl ? `=HYPERLINK("${listing.sourceUrl}", "${cleanName}")` : (listing.name || "");
+
     rows.push([
-      listing.name || "",
+      nameCell,
       listing.companyName || "",
       (listing.phoneNumbers || []).join(", "),
       (listing.whatsappNumbers || []).join(", "),
@@ -257,7 +262,6 @@ function buildListingRows(result) {
       listing.category || "",
       listing.rating || "",
       listing.reviewCount || "",
-      listing.sourceUrl || "",
       listing.pageTitle || ""
     ]);
   }
@@ -320,7 +324,13 @@ function buildCellXml(rowNumber, cellIndex, value, freezeRowNumber) {
   } else if (rowNumber === 1) {
     style = ' s="1"';
   }
-  return `<c r="${reference}" t="inlineStr"${style}><is><t>${escapeXml(value)}</t></is></c>`;
+  
+  const valStr = value == null ? "" : String(value);
+  if (valStr.startsWith("=")) {
+    return `<c r="${reference}"${style}><f>${escapeXml(valStr.slice(1))}</f></c>`;
+  } else {
+    return `<c r="${reference}" t="inlineStr"${style}><is><t>${escapeXml(valStr)}</t></is></c>`;
+  }
 }
 
 function columnName(index) {
