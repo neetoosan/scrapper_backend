@@ -14,7 +14,12 @@ const waAutoScroll = document.getElementById("waAutoScroll");
 const waStartScrapeBtn = document.getElementById("waStartScrapeBtn");
 const waCancelBtn = document.getElementById("waCancelBtn");
 
-
+const geminiToggle = document.getElementById("geminiToggle");
+const geminiPanel = document.getElementById("geminiPanel");
+const geminiKeyInput = document.getElementById("geminiKeyInput");
+const saveGeminiKeyBtn = document.getElementById("saveGeminiKeyBtn");
+const clearGeminiKeyBtn = document.getElementById("clearGeminiKeyBtn");
+const geminiKeyStatus = document.getElementById("geminiKeyStatus");
 
 const backendSelect = document.getElementById("backendSelect");
 
@@ -206,7 +211,18 @@ async function scrapeCurrentPage(tab) {
   if (backendSelect && backendSelect.value === "cloud") {
     return await scrapeViaCloud(tab, "single");
   }
-  const result = await sendMessageWithInjection(tab.id, { action: "scrapePage" });
+
+  const settings = await new Promise((resolve) => {
+    chrome.storage.local.get(["gemini_api_key", "gemini_enabled"], resolve);
+  });
+
+  const result = await sendMessageWithInjection(tab.id, {
+    action: "scrapePage",
+    options: {
+      geminiEnabled: !!settings.gemini_enabled,
+      geminiApiKey: settings.gemini_api_key || ""
+    }
+  });
   if (result && result.error) throw new Error(result.error);
   return normalizeScrapeResult(result, tab);
 }
@@ -274,7 +290,16 @@ async function scrapeFetchedPage(pageUrl) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
-  return normalizeScrapeResult(scrapeGenericDocument(doc, pageUrl), {
+  const settings = await new Promise((resolve) => {
+    chrome.storage.local.get(["gemini_api_key", "gemini_enabled"], resolve);
+  });
+
+  const rawScrape = await scrapeGenericDocument(doc, pageUrl, {
+    geminiEnabled: !!settings.gemini_enabled,
+    geminiApiKey: settings.gemini_api_key || ""
+  });
+
+  return normalizeScrapeResult(rawScrape, {
     title: doc.title,
     url: pageUrl
   });
@@ -425,6 +450,74 @@ function formatCloudResults(job, tab) {
     pagesScanned: job.total_listings || 1,
     failedPages: []
   };
+}
+
+// ── Gemini AI settings & Event Handlers ─────────────────────────────────────
+chrome.storage.local.get(["gemini_api_key", "gemini_enabled"], (data) => {
+  if (data.gemini_api_key) {
+    geminiKeyInput.value = data.gemini_api_key;
+    updateGeminiStatus(true);
+  } else {
+    updateGeminiStatus(false);
+  }
+  geminiToggle.checked = !!data.gemini_enabled;
+});
+
+geminiToggle.addEventListener("change", () => {
+  const enabled = geminiToggle.checked;
+  chrome.storage.local.set({ gemini_enabled: enabled });
+  
+  if (enabled) {
+    chrome.storage.local.get(["gemini_api_key"], (data) => {
+      if (!data.gemini_api_key) {
+        geminiPanel.classList.remove("hidden");
+        geminiKeyStatus.textContent = "Please enter and save your API key first.";
+        geminiKeyStatus.className = "key-status error";
+      }
+    });
+  } else {
+    geminiPanel.classList.add("hidden");
+  }
+});
+
+// Let double clicking the label toggle open the key panel manually
+document.querySelector(".toggle-label").addEventListener("dblclick", () => {
+  geminiPanel.classList.toggle("hidden");
+});
+
+saveGeminiKeyBtn.addEventListener("click", () => {
+  const key = geminiKeyInput.value.trim();
+  if (!key) {
+    geminiKeyStatus.textContent = "API key cannot be empty.";
+    geminiKeyStatus.className = "key-status error";
+    return;
+  }
+  
+  chrome.storage.local.set({ gemini_api_key: key }, () => {
+    updateGeminiStatus(true);
+    geminiKeyStatus.textContent = "API Key saved successfully!";
+    geminiKeyStatus.className = "key-status success";
+    setTimeout(() => {
+      geminiPanel.classList.add("hidden");
+    }, 1200);
+  });
+});
+
+clearGeminiKeyBtn.addEventListener("click", () => {
+  geminiKeyInput.value = "";
+  chrome.storage.local.remove(["gemini_api_key"], () => {
+    updateGeminiStatus(false);
+    geminiKeyStatus.textContent = "API Key cleared.";
+    geminiKeyStatus.className = "key-status error";
+  });
+});
+
+function updateGeminiStatus(hasKey) {
+  if (hasKey) {
+    saveGeminiKeyBtn.textContent = "Update Key";
+  } else {
+    saveGeminiKeyBtn.textContent = "Save Key";
+  }
 }
 
 

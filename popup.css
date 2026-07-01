@@ -65,6 +65,12 @@ h1 {
   margin-bottom: 12px;
 }
 
+.engine-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .engine-bar label {
   font-size: 13px;
   color: var(--accent-strong);
@@ -80,6 +86,35 @@ h1 {
   font-weight: 600;
   color: var(--ink);
   cursor: pointer;
+}
+
+.toggle-group {
+  cursor: pointer;
+}
+
+.toggle-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.toggle-label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.key-status {
+  font-size: 11px;
+  margin-top: 6px;
+  font-weight: bold;
+}
+
+.key-status.success {
+  color: var(--accent-strong);
+}
+
+.key-status.error {
+  color: var(--brand);
 }
 
 .controls {

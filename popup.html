@@ -15,11 +15,32 @@
       </header>
 
       <section class="engine-bar">
-        <label for="backendSelect"><strong>Scrape Engine:</strong></label>
-        <select id="backendSelect" class="engine-select">
-          <option value="cloud">🌐 Cloud Server (Render Scrapy)</option>
-          <option value="local" selected>💻 Local Browser</option>
-        </select>
+        <div class="engine-group">
+          <label for="backendSelect"><strong>Engine:</strong></label>
+          <select id="backendSelect" class="engine-select">
+            <option value="cloud">🌐 Cloud Server (Render Scrapy)</option>
+            <option value="local" selected>💻 Local Browser</option>
+          </select>
+        </div>
+        <div class="engine-group toggle-group">
+          <input type="checkbox" id="geminiToggle" class="toggle-checkbox">
+          <label for="geminiToggle" class="toggle-label"><strong>✨ AI Clean</strong></label>
+        </div>
+      </section>
+
+      <!-- Gemini AI Configuration -->
+      <section id="geminiPanel" class="config-panel hidden">
+        <h3>✨ Gemini AI Assistant Setup</h3>
+        <p class="help-text">Enter your Gemini API key from <a href="https://aistudio.google.com/" target="_blank">Google AI Studio</a>.</p>
+        <div class="form-group">
+          <label for="geminiKeyInput">API Key:</label>
+          <input type="password" id="geminiKeyInput" placeholder="AIza..." autocomplete="off">
+        </div>
+        <div class="panel-actions">
+          <button id="saveGeminiKeyBtn" type="button">Save Key</button>
+          <button id="clearGeminiKeyBtn" type="button" class="secondary">Clear</button>
+        </div>
+        <p id="geminiKeyStatus" class="key-status"></p>
       </section>
 
       <section class="controls">

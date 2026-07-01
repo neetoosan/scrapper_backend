@@ -31,7 +31,7 @@ async function scrapePage(options = {}) {
     return scrapeFacebookBusinessPage(document, location.href);
   }
 
-  return scrapeGenericDocument(document, location.href);
+  return await scrapeGenericDocument(document, location.href, options);
 }
 
 function extractStructuredContacts(doc) {
@@ -180,7 +180,65 @@ function extractStructuredContacts(doc) {
   return extracted;
 }
 
-function scrapeGenericDocument(doc, pageUrl) {
+async function scrapeGenericDocument(doc, pageUrl, options = {}) {
+  if (options.geminiEnabled && options.geminiApiKey) {
+    try {
+      const visibleText = collectVisibleText(doc.body).slice(0, 16000);
+      const aiResponse = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({
+          action: "cleanWithGemini",
+          text: visibleText,
+          apiKey: options.geminiApiKey
+        }, (res) => {
+          resolve(res);
+        });
+      });
+
+      if (aiResponse && aiResponse.success && aiResponse.data && Array.isArray(aiResponse.data.listings)) {
+        const aiListings = aiResponse.data.listings.map(item => ({
+          name: item.name || "",
+          companyName: item.companyName || item.name || "",
+          phoneNumbers: Array.isArray(item.phoneNumbers) ? item.phoneNumbers : (item.phone ? [item.phone] : []),
+          whatsappNumbers: Array.isArray(item.whatsappNumbers) ? item.whatsappNumbers : [],
+          socialMediaHandles: Array.isArray(item.socialMediaHandles) ? item.socialMediaHandles : [],
+          emails: Array.isArray(item.emails) ? item.emails : (item.email ? [item.email] : []),
+          website: item.website || "",
+          address: item.address || "",
+          category: item.category || "",
+          sourceUrl: pageUrl,
+          pageTitle: doc.title || ""
+        }));
+
+        const names = aiListings.map(l => l.name).filter(Boolean);
+        const companyNames = aiListings.map(l => l.companyName).filter(Boolean);
+        const phoneNumbers = aiListings.flatMap(l => l.phoneNumbers).filter(Boolean);
+        const whatsappNumbers = aiListings.flatMap(l => l.whatsappNumbers).filter(Boolean);
+        const socialMediaHandles = aiListings.flatMap(l => l.socialMediaHandles).filter(Boolean);
+        const emails = aiListings.flatMap(l => l.emails).filter(Boolean);
+        const websites = aiListings.map(l => l.website).filter(Boolean);
+        const addresses = aiListings.map(l => l.address).filter(Boolean);
+
+        return {
+          page: {
+            title: doc.title || "",
+            url: pageUrl
+          },
+          names: [...new Set(names)],
+          companyNames: [...new Set(companyNames)],
+          phoneNumbers: [...new Set(phoneNumbers)],
+          whatsappNumbers: [...new Set(whatsappNumbers)],
+          socialMediaHandles: [...new Set(socialMediaHandles)],
+          emails: [...new Set(emails)],
+          websites: [...new Set(websites)],
+          addresses: [...new Set(addresses)],
+          listings: aiListings
+        };
+      }
+    } catch (e) {
+      console.error("Gemini extraction failed, falling back to local heuristic extraction:", e);
+    }
+  }
+
   const structured = extractStructuredContacts(doc);
   
   const text = collectVisibleText(doc.body);
