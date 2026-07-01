@@ -14,6 +14,17 @@
         <p class="subtitle">Extract contacts from Google Maps, WhatsApp, Facebook, Jiji, and more.</p>
       </header>
 
+      <!-- Gemini API Key Setup -->
+      <section class="api-key-container">
+        <div class="api-key-row">
+          <label for="geminiKeyInput"><strong>Gemini API:</strong></label>
+          <input type="password" id="geminiKeyInput" placeholder="Paste Gemini API key here..." autocomplete="off">
+          <button id="saveGeminiKeyBtn" type="button">Save</button>
+          <button id="clearGeminiKeyBtn" type="button" class="secondary">Clear</button>
+        </div>
+        <p id="geminiKeyStatus" class="key-status"></p>
+      </section>
+
       <section class="engine-bar">
         <div class="engine-group">
           <label for="backendSelect"><strong>Engine:</strong></label>
@@ -26,21 +37,6 @@
           <input type="checkbox" id="geminiToggle" class="toggle-checkbox">
           <label for="geminiToggle" class="toggle-label"><strong>✨ AI Clean</strong></label>
         </div>
-      </section>
-
-      <!-- Gemini AI Configuration -->
-      <section id="geminiPanel" class="config-panel hidden">
-        <h3>✨ Gemini AI Assistant Setup</h3>
-        <p class="help-text">Enter your Gemini API key from <a href="https://aistudio.google.com/" target="_blank">Google AI Studio</a>.</p>
-        <div class="form-group">
-          <label for="geminiKeyInput">API Key:</label>
-          <input type="password" id="geminiKeyInput" placeholder="AIza..." autocomplete="off">
-        </div>
-        <div class="panel-actions">
-          <button id="saveGeminiKeyBtn" type="button">Save Key</button>
-          <button id="clearGeminiKeyBtn" type="button" class="secondary">Clear</button>
-        </div>
-        <p id="geminiKeyStatus" class="key-status"></p>
       </section>
 
       <section class="controls">

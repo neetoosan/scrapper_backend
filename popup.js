@@ -15,7 +15,6 @@ const waStartScrapeBtn = document.getElementById("waStartScrapeBtn");
 const waCancelBtn = document.getElementById("waCancelBtn");
 
 const geminiToggle = document.getElementById("geminiToggle");
-const geminiPanel = document.getElementById("geminiPanel");
 const geminiKeyInput = document.getElementById("geminiKeyInput");
 const saveGeminiKeyBtn = document.getElementById("saveGeminiKeyBtn");
 const clearGeminiKeyBtn = document.getElementById("clearGeminiKeyBtn");
@@ -470,19 +469,11 @@ geminiToggle.addEventListener("change", () => {
   if (enabled) {
     chrome.storage.local.get(["gemini_api_key"], (data) => {
       if (!data.gemini_api_key) {
-        geminiPanel.classList.remove("hidden");
         geminiKeyStatus.textContent = "Please enter and save your API key first.";
         geminiKeyStatus.className = "key-status error";
       }
     });
-  } else {
-    geminiPanel.classList.add("hidden");
   }
-});
-
-// Let double clicking the label toggle open the key panel manually
-document.querySelector(".toggle-label").addEventListener("dblclick", () => {
-  geminiPanel.classList.toggle("hidden");
 });
 
 saveGeminiKeyBtn.addEventListener("click", () => {
@@ -498,8 +489,8 @@ saveGeminiKeyBtn.addEventListener("click", () => {
     geminiKeyStatus.textContent = "API Key saved successfully!";
     geminiKeyStatus.className = "key-status success";
     setTimeout(() => {
-      geminiPanel.classList.add("hidden");
-    }, 1200);
+      geminiKeyStatus.textContent = "";
+    }, 2000);
   });
 });
 
@@ -509,14 +500,17 @@ clearGeminiKeyBtn.addEventListener("click", () => {
     updateGeminiStatus(false);
     geminiKeyStatus.textContent = "API Key cleared.";
     geminiKeyStatus.className = "key-status error";
+    setTimeout(() => {
+      geminiKeyStatus.textContent = "";
+    }, 2000);
   });
 });
 
 function updateGeminiStatus(hasKey) {
   if (hasKey) {
-    saveGeminiKeyBtn.textContent = "Update Key";
+    saveGeminiKeyBtn.textContent = "Update";
   } else {
-    saveGeminiKeyBtn.textContent = "Save Key";
+    saveGeminiKeyBtn.textContent = "Save";
   }
 }
 

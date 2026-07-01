@@ -105,8 +105,48 @@ h1 {
 
 .key-status {
   font-size: 11px;
-  margin-top: 6px;
+  margin-top: 4px;
   font-weight: bold;
+}
+
+.api-key-container {
+  background: #fbf8f2;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.api-key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.api-key-row label {
+  font-size: 12px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.api-key-row input {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.api-key-row button {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.api-key-row button.secondary {
+  padding: 6px 10px;
 }
 
 .key-status.success {
