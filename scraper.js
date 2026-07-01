@@ -339,7 +339,7 @@ function collectCandidateLinks() {
     .filter((item) => item.href);
 }
 
-function buildMarketplaceQueue(rawLinks, currentUrl) {
+function buildMarketplaceQueue(rawLinks, currentUrl, limit = 12) {
   const current = new URL(currentUrl);
   const seen = new Set([stripUrlHash(current.toString())]);
   const queue = [];
@@ -379,7 +379,7 @@ function buildMarketplaceQueue(rawLinks, currentUrl) {
     seen.add(candidate);
     queue.push(candidate);
 
-    if (queue.length >= WEBSITE_PAGE_LIMIT - 1) {
+    if (queue.length >= limit - 1) {
       break;
     }
   }
@@ -387,7 +387,7 @@ function buildMarketplaceQueue(rawLinks, currentUrl) {
   return queue;
 }
 
-function buildWebsiteQueue(rawLinks, currentUrl) {
+function buildWebsiteQueue(rawLinks, currentUrl, limit = 12) {
   const baseUrl = new URL(currentUrl);
   const sameOriginLinks = [];
 
@@ -427,7 +427,7 @@ function buildWebsiteQueue(rawLinks, currentUrl) {
 
   return deduped
     .filter((item) => item.score > -5)
-    .slice(0, WEBSITE_PAGE_LIMIT - 1)
+    .slice(0, limit - 1)
     .map((item) => item.url);
 }
 

@@ -21,8 +21,12 @@ const clearGeminiKeyBtn = document.getElementById("clearGeminiKeyBtn");
 const geminiKeyStatus = document.getElementById("geminiKeyStatus");
 
 const backendSelect = document.getElementById("backendSelect");
+const limitSelect = document.getElementById("limitSelect");
 
-const WEBSITE_PAGE_LIMIT = 12;
+function getPageLimit() {
+  return parseInt(limitSelect.value) || 12;
+}
+
 const CLOUD_API_BASE = "https://edgewebscraper-backend.onrender.com";
 
 let lastResult = null;
@@ -253,15 +257,16 @@ async function crawlWebsite(tab) {
 
   const rawLinks = await sendMessageWithInjection(tab.id, { action: "collectCandidateLinks" });
 
+  const limit = getPageLimit();
   const queue = isSupportedMarketplaceUrl(tab.url)
-    ? buildMarketplaceQueue(rawLinks || [], tab.url)
-    : buildWebsiteQueue(rawLinks || [], tab.url);
+    ? buildMarketplaceQueue(rawLinks || [], tab.url, limit)
+    : buildWebsiteQueue(rawLinks || [], tab.url, limit);
   const crawlPages = [toCrawlPage(currentPageResult)];
   const failedPages = [];
 
-  for (let index = 0; index < queue.length && crawlPages.length < WEBSITE_PAGE_LIMIT; index += 1) {
+  for (let index = 0; index < queue.length && crawlPages.length < limit; index += 1) {
     const pageUrl = queue[index];
-    setStatus(`Crawling page ${crawlPages.length + 1} of ${Math.min(queue.length + 1, WEBSITE_PAGE_LIMIT)}...`);
+    setStatus(`Crawling page ${crawlPages.length + 1} of ${Math.min(queue.length + 1, limit)}...`);
 
     try {
       const pageResult = await scrapeFetchedPage(pageUrl);
@@ -412,7 +417,7 @@ async function scrapeViaCloud(tab, mode = "single") {
     body: JSON.stringify({
       url: tab.url,
       mode: mode,
-      max_pages: WEBSITE_PAGE_LIMIT
+      max_pages: getPageLimit()
     })
   });
 
