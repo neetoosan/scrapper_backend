@@ -275,33 +275,63 @@ async function crawlWebsite(tab) {
 }
 
 async function scrapeFetchedPage(pageUrl) {
-  const response = await fetch(pageUrl, { credentials: "include" });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${pageUrl}: ${response.status}`);
+  // Create a background tab (not focused, so it doesn't interrupt the user)
+  const tab = await new Promise((resolve) => {
+    chrome.tabs.create({ url: pageUrl, active: false }, resolve);
+  });
+  
+  try {
+    // Wait for the tab to load fully
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(listener);
+        reject(new Error("Timeout loading page: " + pageUrl));
+      }, 15000); // 15s max timeout
+
+      function listener(tabId, changeInfo) {
+        if (tabId === tab.id && changeInfo.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(listener);
+          clearTimeout(timeout);
+          resolve();
+        }
+      }
+      chrome.tabs.onUpdated.addListener(listener);
+    });
+
+    // Inject excel-builder.js and scraper.js to the new tab
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["excel-builder.js", "scraper.js"]
+    });
+
+    // Wait a brief moment for the page to initialize and trigger reveal clicks
+    // E.g. Jiji listing page will auto-click "Show contact" buttons inside its scrapePage
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    // Send scrape message to the tab's content script
+    const settings = await new Promise((resolve) => {
+      chrome.storage.local.get(["gemini_api_key", "gemini_enabled"], resolve);
+    });
+
+    const result = await chrome.tabs.sendMessage(tab.id, {
+      action: "scrapePage",
+      options: {
+        geminiEnabled: !!settings.gemini_enabled,
+        geminiApiKey: settings.gemini_api_key || ""
+      }
+    });
+
+    if (result && result.error) throw new Error(result.error);
+    return normalizeScrapeResult(result, {
+      title: tab.title || "Scraped Page",
+      url: pageUrl
+    });
+  } finally {
+    // Always close the tab when done to avoid resource leaks!
+    try {
+      await chrome.tabs.remove(tab.id);
+    } catch {}
   }
-
-  const contentType = response.headers.get("content-type") || "";
-  if (!contentType.includes("text/html")) {
-    throw new Error(`Skipped non-HTML page: ${pageUrl}`);
-  }
-
-  const html = await response.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
-
-  const settings = await new Promise((resolve) => {
-    chrome.storage.local.get(["gemini_api_key", "gemini_enabled"], resolve);
-  });
-
-  const rawScrape = await scrapeGenericDocument(doc, pageUrl, {
-    geminiEnabled: !!settings.gemini_enabled,
-    geminiApiKey: settings.gemini_api_key || ""
-  });
-
-  return normalizeScrapeResult(rawScrape, {
-    title: doc.title,
-    url: pageUrl
-  });
 }
 
 function setBusy(mode, isBusy) {

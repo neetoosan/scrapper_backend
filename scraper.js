@@ -1944,3 +1944,7 @@ if (!window.__edgescraper_listener_added) {
   });
   window.__edgescraper_listener_added = true;
 }
+
+function waitForDom(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
