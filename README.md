@@ -1,4 +1,4 @@
-# Edge Contact Scraper V3
+# Edge Contact Scraper
 
 This is a Microsoft Edge browser extension that extracts likely contact information from the current page:
 
